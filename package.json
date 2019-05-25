@@ -8,23 +8,20 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
-    "face-api.js": "^0.16.1",
-    "vue": "^2.5.17",
-    "vue-router": "^3.0.1",
-    "vuex": "^3.0.1",
-    "webrtc-adapter": "^6.4.8"
+    "face-api.js": "^0.20.0",
+    "vue": "^2.6.10",
+    "vue-router": "^3.0.6",
+    "webrtc-adapter": "^7.2.3"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.0.4",
-    "@vue/cli-plugin-eslint": "^3.0.4",
-    "@vue/cli-service": "^3.0.4",
-    "@vue/eslint-config-prettier": "^4.0.0",
+    "@vue/cli-plugin-babel": "^3.7.0",
+    "@vue/cli-plugin-eslint": "^3.7.0",
+    "@vue/cli-service": "^3.7.0",
+    "@vue/eslint-config-prettier": "^4.0.1",
     "babel-eslint": "^10.0.1",
-    "eslint": "^5.8.0",
-    "eslint-plugin-vue": "^5.0.0-0",
-    "less": "^3.0.4",
-    "less-loader": "^4.1.0",
-    "vue-template-compiler": "^2.5.17"
+    "eslint": "^5.16.0",
+    "eslint-plugin-vue": "^5.0.0",
+    "vue-template-compiler": "^2.5.21"
   },
   "eslintConfig": {
     "root": true,

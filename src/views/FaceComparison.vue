@@ -16,11 +16,9 @@ import 安悦溪2 from "../assets/images/安悦溪2.jpg";
 
 export default {
   name: "FaceComparison",
-  props: {
-    msg: String
-  },
   data() {
     return {
+      // 差值
       threshold: 0.6,
       descriptors: {
         desc1: null,
@@ -55,7 +53,7 @@ export default {
         )
       );
       // 判断
-      console.log("相似度:", distance);
+      console.log("值越小越相似:", distance);
       if (distance > this.threshold) {
         console.log(distance, "相似度<0.6 不比配");
       }
@@ -65,5 +63,5 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped lang="less">
+<style scoped>
 </style>

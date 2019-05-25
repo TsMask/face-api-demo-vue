@@ -1,15 +1,8 @@
-import About from "@/views/About.vue";
-
 export default [
   {
     path: "/",
     name: "about",
-    component: About
-  },
-  {
-    path: "/rtc",
-    name: "RTC",
-    component: () => import("@/views/RTC.vue")
+    component: () => import("@/views/About.vue")
   },
   {
     path: "/face_comparison",
@@ -22,9 +15,14 @@ export default [
     component: () => import("@/views/FaceComparisonMany.vue")
   },
   {
-    path: "/rtc_face_trackimg",
-    name: "rtc_face_trackimg",
-    component: () => import("@/views/RTCFaceTrackimg.vue")
+    path: "/video_media_stream",
+    name: "VideoMediaStream",
+    component: () => import("@/views/VideoMediaStream.vue")
+  },
+  {
+    path: "/video_media_canvas_stream",
+    name: "VideoMediaCanvasStream",
+    component: () => import("@/views/VideoMediaCanvasStream.vue")
   },
   {
     path: "*",

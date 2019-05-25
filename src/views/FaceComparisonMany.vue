@@ -35,16 +35,18 @@ export default {
   },
   mounted() {
     // 同步执行避免报错
-    this.show();
+    this.init();
   },
   methods: {
+    // 同步执行避免报错
     async init() {
       await faceapi.loadFaceRecognitionModel("/models");
       this.faceMatcher = await this.createFaceMatcher();
+      await this.runArray();
     },
     // 人脸对比模型数组对象
     async createFaceMatcher() {
-      // 模型里的图片
+      // 模型里的图片，一人多张图片
       // const picArray = [
       //   {
       //     name: "安悦溪",
@@ -85,9 +87,9 @@ export default {
     },
     // 对比图片
     async runArray() {
-      // 使用对比模型里的图片
+      // 使用对比模型里的图片，用几张张图片与模型组里做对比
       // const picArrays = ["https://dwz.cn/ZggSBEtL", "https://dwz.cn/U7nR0no0"];
-      const picArrays = [张杰3, 张杰4];
+      const picArrays = [张杰3, 张杰4, 张杰1];
       // 遍历对比里图片
       for (const key in picArrays) {
         if (picArrays.hasOwnProperty(key)) {
@@ -110,16 +112,11 @@ export default {
           // 数组遍历结束
         }
       }
-    },
-    // 同步执行避免报错
-    async show() {
-      await this.init();
-      await this.runArray();
     }
   }
 };
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped lang="less">
+<style scoped>
 </style>
