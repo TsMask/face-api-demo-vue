@@ -1,32 +1,55 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/">关于</router-link>|
-      <router-link to="/face_comparison">两张图对比</router-link>|
-      <router-link to="/face_comparison_many">多张图对比</router-link>|
-      <router-link to="/video_media_stream">WebRTC媒体视频流</router-link>|
-      <router-link to="/video_media_canvas_stream">WebRTC媒体人脸框绘制检测</router-link>
+      <ul>
+        <li v-for="(item, index) in $router.options.routes" :key="index">
+          <router-link :to="item.path" v-text="item.name"></router-link>
+        </li>
+      </ul>
     </div>
-    <router-view/>
+    <div id="content">
+      <router-view />
+    </div>
   </div>
 </template>
 
 <style>
 #app {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
+  display: flex;
+  flex-direction: row;
   color: #2c3e50;
 }
+
 #nav {
-  padding: 30px;
+  min-width: 200px;
+  border: 2px #42b983 solid;
+  padding: 10px;
+  margin-right: 20px;
 }
-a {
+
+#nav ul,
+#nav li {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  line-height: 30px;
+}
+
+#nav a {
   font-weight: bold;
   color: #2c3e50;
 }
-a.router-link-exact-active {
+
+#nav a.router-link-exact-active {
   color: #42b983;
+}
+
+#content {
+  flex-grow: 1;
+  border: 2px #42b983 solid;
+  padding: 20px;
 }
 </style>
