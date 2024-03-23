@@ -1,12 +1,16 @@
 <script setup>
+import { SpeedInsights } from "@vercel/speed-insights/vue"
+import { inject } from "@vercel/analytics"
 import { useRouter } from "vue-router";
 const router = useRouter(); // 返回路由器实例
 const routes = router.getRoutes();
+inject()
 </script>
 
 <template>
   <div class="layout">
     <div class="layout_nav">
+      <SpeedInsights></SpeedInsights>
       <ul>
         <li v-for="(item, index) in routes" :key="index">
           <router-link :to="item.path" v-text="item.meta.title"></router-link>

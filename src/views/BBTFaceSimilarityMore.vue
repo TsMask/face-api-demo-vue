@@ -11,28 +11,28 @@ const state = reactive({
     {
       name: "张伟",
       imgs: [
-        `${import.meta.env.BASE_URL}/images/zw/zw01.jpg`,
-        `${import.meta.env.BASE_URL}/images/zw/zw02.jpg`,
-        `${import.meta.env.BASE_URL}/images/zw/zw03.jpg`,
-        `${import.meta.env.BASE_URL}/images/zw/zw04.jpg`,
+        "/images/zw/zw01.jpg",
+        "/images/zw/zw02.jpg",
+        "/images/zw/zw03.jpg",
+        "/images/zw/zw04.jpg",
       ],
     },
     {
       name: "曾小贤",
       imgs: [
-        `${import.meta.env.BASE_URL}/images/zxx/zxx01.jpg`,
-        `${import.meta.env.BASE_URL}/images/zxx/zxx02.jpg`,
-        `${import.meta.env.BASE_URL}/images/zxx/zxx03.jpg`,
-        `${import.meta.env.BASE_URL}/images/zxx/zxx04.jpg`,
+        "/images/zxx/zxx01.jpg",
+        "/images/zxx/zxx02.jpg",
+        "/images/zxx/zxx03.jpg",
+        "/images/zxx/zxx04.jpg",
       ],
     },
   ],
   // 匹配图，支持本地，网络，beas64
   detArr: [
-    `${import.meta.env.BASE_URL}/images/zw/zw02.jpg`,
-    `${import.meta.env.BASE_URL}/images/zw/zw04.jpg`,
-    `${import.meta.env.BASE_URL}/images/zxx/zxx02.jpg`,
-    `${import.meta.env.BASE_URL}/images/zxx/zxx04.jpg`,
+    "/images/zw/zw02.jpg",
+    "/images/zw/zw04.jpg",
+    "/images/zxx/zxx02.jpg",
+    "/images/zxx/zxx04.jpg",
   ],
   // 匹配结果
   resultArr: [],
@@ -43,7 +43,7 @@ const state = reactive({
 /**初始化模型加载 */
 async function fnLoadModel() {
   // 面部识别模型
-  await faceapi.loadFaceRecognitionModel(`${import.meta.env.BASE_URL}/models`);
+  await faceapi.loadFaceRecognitionModel("/models");
 
   // 关闭模型加载
   state.netsLoadModel = false;

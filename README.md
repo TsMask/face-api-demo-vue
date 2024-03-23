@@ -10,8 +10,10 @@ npm 主要安装以下：
 npm i --save face-api.js
 ```
 
-- [face-api 使用文档](https://justadudewhohacks.github.io/face-api.js/docs/globals.html)
-- [我仓库 browser 示例 0.13.8 含 dist/文档/模型/示例](https://github.com/TsMask/face-api-demo)
+- [本人在线示例-aliyun](https://env-00jxgaqjulpu-static.normal.cloudstatic.cn/face-api-demo-vue/index.html#/)
+- [本人在线示例-vercel](https://face-api-demo-vue-mu.vercel.app/)
+- [本人仓库 browser 示例 0.13.8 含 dist/文档/模型/示例](https://github.com/TsMask/face-api-demo)
+- [GitHub face-api 使用文档](https://justadudewhohacks.github.io/face-api.js/docs/globals.html)
 - [GitHub 作者识别库源码](https://github.com/justadudewhohacks/face-api.js)
 - [GitHub 作者在线示例](https://justadudewhohacks.github.io/face-api.js)
 
