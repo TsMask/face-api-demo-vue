@@ -1,289 +1,259 @@
+<script setup>
+import * as faceapi from "face-api.js";
+import { onMounted, onUnmounted, reactive } from "vue";
+
+/**属性状态 */
+const state = reactive({
+  /**初始化模型加载 */
+  netsLoadModel: true,
+  /**算法模型 */
+  netsType: "ssdMobilenetv1",
+  /**模型参数 */
+  netsOptions: {
+    ssdMobilenetv1: undefined,
+    tinyFaceDetector: undefined,
+    mtcnn: undefined,
+  },
+  /**目标图片数据匹配对象 */
+  faceMatcher: {},
+  /**目标图片元素 */
+  targetImgEl: null,
+  /**目标画布图层元素 */
+  targetCanvasEl: null,
+  /**识别视频元素 */
+  discernVideoEl: null,
+  /**识别画布图层元素 */
+  discernCanvasEl: null,
+  /**绘制定时器 */
+  timer: 0,
+});
+
+/**初始化模型加载 */
+async function fnLoadModel() {
+  // 面部轮廓模型
+  await faceapi.loadFaceLandmarkModel("/models");
+  // 面部识别模型
+  await faceapi.loadFaceRecognitionModel("/models");
+
+  // 模型参数-ssdMobilenetv1
+  await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
+  state.netsOptions.ssdMobilenetv1 = new faceapi.SsdMobilenetv1Options({
+    minConfidence: 0.5, // 0.1 ~ 0.9
+  });
+  // 模型参数-tinyFaceDetector
+  await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+  state.netsOptions.tinyFaceDetector = new faceapi.TinyFaceDetectorOptions({
+    inputSize: 224, // 160 224 320 416 512 608
+    scoreThreshold: 0.5, // 0.1 ~ 0.9
+  });
+  // 模型参数-mtcnn 已弃用，将很快被删除
+  await faceapi.nets.mtcnn.loadFromUri("/models");
+  state.netsOptions.mtcnn = new faceapi.MtcnnOptions({
+    minFaceSize: 20, // 1 ~ 50
+    scaleFactor: 0.56, // 0.1 ~ 0.9
+  });
+
+  // 节点元素
+  state.targetImgEl = document.getElementById("page_draw-img-target");
+  state.targetCanvasEl = document.getElementById("page_draw-canvas-target");
+  state.discernVideoEl = document.getElementById("page_draw-video");
+  state.discernCanvasEl = document.getElementById("page_draw-video-canvas");
+
+  // 关闭模型加载
+  state.netsLoadModel = false;
+}
+
+/**根据模型参数识别绘制--目标图 */
+async function fnRedrawTarget() {
+  console.log("Run Redraw Target");
+  const detect = await faceapi
+    .detectAllFaces(state.targetImgEl, state.netsOptions[state.netsType])
+    // 需引入面部轮廓模型
+    .withFaceLandmarks()
+    // 需引入面部识别模型
+    .withFaceDescriptors();
+  if (!detect.length) {
+    state.faceMatcher = null;
+    return;
+  }
+
+  // 原图人脸矩阵结果
+  state.faceMatcher = new faceapi.FaceMatcher(detect);
+
+  // 识别图像绘制
+  const dims = faceapi.matchDimensions(state.targetCanvasEl, state.targetImgEl);
+  const resizedResults = faceapi.resizeResults(detect, dims);
+  resizedResults.forEach(({ detection, descriptor }) => {
+    const best = state.faceMatcher.findBestMatch(descriptor);
+    // 目标原图绘制框
+    new faceapi.draw.DrawBox(detection.box, {
+      label: best.label,
+      boxColor: "#55b881",
+    }).draw(state.targetCanvasEl);
+  });
+}
+
+/**根据模型参数识别绘制 */
+async function fnRedrawDiscern() {
+  if (!state.faceMatcher) return;
+  console.log("Run Redraw Discern");
+
+  // 暂停视频时清除定时
+  if (state.discernVideoEl.paused) {
+    clearTimeout(state.timer);
+    state.timer = 0;
+    return;
+  }
+
+  // 识别绘制人脸信息
+  const detect = await faceapi
+    .detectAllFaces(state.discernVideoEl, state.netsOptions[state.netsType])
+    // 需引入面部轮廓模型
+    .withFaceLandmarks()
+    // 需引入面部识别模型
+    .withFaceDescriptors();
+
+  // 无识别数据时，清除定时重新再次识别
+  if (!detect) {
+    clearTimeout(state.timer);
+    state.timer = 0;
+    fnRedrawDiscern();
+    return;
+  }
+
+  // 匹配元素大小
+  const dims = faceapi.matchDimensions(
+    state.discernCanvasEl,
+    state.discernVideoEl,
+    true
+  );
+  const result = faceapi.resizeResults(detect, dims);
+  result.forEach(({ detection, descriptor }) => {
+    // 最佳匹配 distance越小越匹配
+    const best = state.faceMatcher.findBestMatch(descriptor);
+    // 识别图绘制框
+    const label = best.toString();
+    new faceapi.draw.DrawBox(detection.box, { label }).draw(
+      state.discernCanvasEl
+    );
+  });
+
+  // 定时器句柄
+  state.timer = setTimeout(() => fnRedrawDiscern(), 0);
+}
+
+/**
+ * 视频暂停播放
+ *
+ * 播放视频，开始识别绘制
+ *
+ * 暂停视频，不清除画布
+ */
+function fnVidelPaused() {
+  if (state.discernVideoEl.paused) {
+    state.discernVideoEl.play();
+    setTimeout(() => fnRedrawDiscern(), 300);
+  } else {
+    state.discernVideoEl.pause();
+  }
+}
+
+/**更换图片 */
+async function fnChangeTarget(e) {
+  if (!state.targetImgEl || !state.targetCanvasEl) return;
+  if (!e.target || !e.target.files.length) return;
+  // 将文件显示为图像并识别
+  const img = await faceapi.bufferToImage(e.target.files[0]);
+  state.targetImgEl.src = img.src;
+  fnRedrawTarget();
+}
+
+/**更换视频 */
+function fnChangeDiscern(e) {
+  if (!state.discernVideoEl || !state.discernCanvasEl) return;
+  if (!e.target || !e.target.files.length) return;
+  // 将文件显示为视频并识别
+  state.discernVideoEl.pause();
+  state.discernVideoEl.src = URL.createObjectURL(e.target.files[0]);
+  clearTimeout(state.timer);
+  state.timer = 0;
+
+  setTimeout(() => {
+    // 清空画布
+    state.discernCanvasEl
+      .getContext("2d")
+      .clearRect(
+        0,
+        0,
+        state.discernCanvasEl.width,
+        state.discernCanvasEl.height
+      );
+  }, 300);
+}
+
+onMounted(() => {
+  fnLoadModel().then(() => fnRedrawTarget());
+});
+
+onUnmounted(() => {
+  clearTimeout(state.timer);
+  state.timer = 0;
+});
+</script>
+
 <template>
-  <div class="video_face_recognition">
-    <div class="option">
+  <div class="page">
+    <div class="page_option">
       <div>
-        <label>视频控制：</label>
-        <button @click="fnPaused">暂停Or播放</button>
-      </div>
-      <div>
-        <label>更换视频：</label>
+        <label>更换目标图片：</label>
         <input
           type="file"
-          accept="video/mp4, video/ogg, video/webm"
-          @change="fnChange($event)"
+          accept="image/png, image/jpeg"
+          @change="fnChangeTarget($event)"
         />
       </div>
       <div>
-        <span style="margin-right: 20px;">检测识别类型：</span>
-        <label>
-          轮廓检测
-          <input type="radio" v-model="detection" value="landmark" />
-        </label>
-        <label>
-          表情检测
-          <input type="radio" v-model="detection" value="expression" />
-        </label>
-        <label>
-          年龄性别检测
-          <input type="radio" v-model="detection" value="age_gender" />
-        </label>
+        <label>更换识别视频：</label>
+        <input
+          type="file"
+          accept="video/mp4, video/ogg, video/webm"
+          @change="fnChangeDiscern($event)"
+        />
       </div>
       <div>
-        <label>边框Or面部轮廓：</label>
-        <input type="checkbox" v-model="withBoxes" />
+        <label>视频媒体：</label>
+        <button @click="fnVidelPaused()">播放/暂停</button>
       </div>
       <div>
-        <label>检测人脸：</label>
-        <label>
-          可信单
-          <input type="radio" v-model="detectFace" value="detectSingleFace" />
-        </label>
-        <label>
-          模糊多
-          <input type="radio" v-model="detectFace" value="detectAllFaces" />
-        </label>
-      </div>
-      <div>
-        <label>选择算法模型</label>
-        <label>
-          ssdMobilenetv1
-          <input type="radio" v-model="nets" value="ssdMobilenetv1" />
-        </label>
-        <label>
-          tinyFaceDetector
-          <input type="radio" v-model="nets" value="tinyFaceDetector" />
-        </label>
-        <label>
-          mtcnn
-          <input type="radio" v-model="nets" value="mtcnn" />
-        </label>
+        <label>算法模型：</label>
+        <select v-model="state.netsType">
+          <option value="ssdMobilenetv1">SSD Mobilenet V1</option>
+          <option value="tinyFaceDetector">Tiny Face Detector</option>
+          <option value="mtcnn">MTCNN</option>
+        </select>
       </div>
     </div>
-    <div class="see">
-      <video id="myVideo" src="videos/test.mp4" muted playsinline></video>
-      <canvas id="myCanvas" />
+
+    <div class="page_load" v-show="state.netsLoadModel">Load Model...</div>
+    <div class="page_draw" v-show="!state.netsLoadModel">
+      <h3>识别目标图像：</h3>
+      <div class="page_draw-target">
+        <img id="page_draw-img-target" src="/images/cp/cp01.jpg" />
+        <canvas id="page_draw-canvas-target"></canvas>
+      </div>
+      <h3>识别匹配视频：</h3>
+      <div class="page_draw-discern">
+        <video
+          id="page_draw-video"
+          poster="/images/720x480.png"
+          src="/videos/test.mp4"
+          muted
+          playsinline
+        ></video>
+        <canvas id="page_draw-video-canvas"></canvas>
+      </div>
     </div>
   </div>
 </template>
 
-<script>
-import * as faceapi from "face-api.js";
-export default {
-  name: "VideoAgeAndGenderRecognition",
-  data() {
-    return {
-      nets: "tinyFaceDetector", // 模型
-      options: null, // 模型参数
-      withBoxes: true, // 框or轮廓
-      detectFace: "detectSingleFace", // 单or多人脸
-      detection: "landmark",
-      videoEl: null,
-      canvasEl: null,
-      timeout: 0,
-    };
-  },
-  watch: {
-    nets(val) {
-      this.nets = val;
-      this.fnInit();
-    },
-    detection(val) {
-      this.detection = val;
-      if (!this.videoEl.paused) {
-        this.videoEl.pause();
-        setTimeout(() => {
-          this.videoEl.play();
-          setTimeout(() => this.fnRun(), 300);
-        }, 300);
-      }
-    },
-  },
-  mounted() {
-    this.$nextTick(() => {
-      this.fnInit();
-    });
-  },
-  methods: {
-    // 初始化模型加载
-    async fnInit() {
-      await faceapi.nets[this.nets].loadFromUri("/models"); // 算法模型
-      await faceapi.loadFaceLandmarkModel("/models"); // 轮廓模型
-      await faceapi.loadFaceExpressionModel("/models"); // 表情模型
-      await faceapi.loadAgeGenderModel("/models"); // 年龄模型
-      // 根据模型参数识别调整结果
-      switch (this.nets) {
-        case "ssdMobilenetv1":
-          this.options = new faceapi.SsdMobilenetv1Options({
-            minConfidence: 0.5, // 0.1 ~ 0.9
-          });
-          break;
-        case "tinyFaceDetector":
-          this.options = new faceapi.TinyFaceDetectorOptions({
-            inputSize: 512, // 160 224 320 416 512 608
-            scoreThreshold: 0.5, // 0.1 ~ 0.9
-          });
-          break;
-        case "mtcnn":
-          this.options = new faceapi.MtcnnOptions({
-            minFaceSize: 20, // 0.1 ~ 0.9
-            scaleFactor: 0.709, // 0.1 ~ 0.9
-          });
-          break;
-      }
-      // 节点属性化
-      this.videoEl = document.getElementById("myVideo");
-      this.canvasEl = document.getElementById("myCanvas");
-    },
-    // 人脸面部勘探轮廓识别绘制
-    async fnRunFaceLandmark() {
-      console.log("RunFaceLandmark");
-      if (this.videoEl.paused) return clearTimeout(this.timeout);
-      // 识别绘制人脸信息
-      const result = await faceapi[this.detectFace](
-        this.videoEl,
-        this.options
-      ).withFaceLandmarks();
-      if (result) {
-        const dims = faceapi.matchDimensions(this.canvasEl, this.videoEl, true);
-        const resizeResult = faceapi.resizeResults(result, dims);
-        this.withBoxes
-          ? faceapi.draw.drawDetections(this.canvasEl, resizeResult)
-          : faceapi.draw.drawFaceLandmarks(this.canvasEl, resizeResult);
-      } else {
-        this.canvasEl
-          .getContext("2d")
-          .clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
-      }
-      this.timeout = setTimeout(() => this.fnRunFaceLandmark());
-    },
-    // 人脸表情识别绘制
-    async fnRunFaceExpression() {
-      console.log("RunFaceExpression");
-      if (this.videoEl.paused) return clearTimeout(this.timeout);
-      // 识别绘制人脸信息
-      const result = await faceapi[this.detectFace](this.videoEl, this.options)
-        .withFaceLandmarks()
-        .withFaceExpressions();
-      if (result) {
-        const dims = faceapi.matchDimensions(this.canvasEl, this.videoEl, true);
-        const resizeResult = faceapi.resizeResults(result, dims);
-        faceapi.draw.drawFaceExpressions(this.canvasEl, resizeResult, 0.5);
-        this.withBoxes
-          ? faceapi.draw.drawDetections(this.canvasEl, resizeResult)
-          : faceapi.draw.drawFaceLandmarks(this.canvasEl, resizeResult);
-      } else {
-        this.canvasEl
-          .getContext("2d")
-          .clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
-      }
-      this.timeout = setTimeout(() => this.fnRunFaceExpression());
-    },
-    // 年龄性别识别绘制
-    async fnRunFaceAgeAndGender() {
-      console.log("RunFaceAgeAndGender");
-      if (this.videoEl.paused) return clearTimeout(this.timeout);
-      // 识别绘制人脸信息
-      const result = await faceapi[this.detectFace](this.videoEl, this.options)
-        .withFaceLandmarks()
-        .withAgeAndGender();
-      if (result) {
-        const dims = faceapi.matchDimensions(this.canvasEl, this.videoEl, true);
-        const resizeResult = faceapi.resizeResults(result, dims);
-        this.withBoxes
-          ? faceapi.draw.drawDetections(this.canvasEl, resizeResult)
-          : faceapi.draw.drawFaceLandmarks(this.canvasEl, resizeResult);
-        if (Array.isArray(resizeResult)) {
-          resizeResult.forEach((result) => {
-            const { age, gender, genderProbability } = result;
-            new faceapi.draw.DrawTextField(
-              [
-                `${Math.round(age, 0)} years`,
-                `${gender} (${Math.round(genderProbability)})`,
-              ],
-              result.detection.box.bottomLeft
-            ).draw(this.canvasEl);
-          });
-        } else {
-          const { age, gender, genderProbability } = resizeResult;
-          new faceapi.draw.DrawTextField(
-            [
-              `${Math.round(age, 0)} years`,
-              `${gender} (${Math.round(genderProbability)})`,
-            ],
-            resizeResult.detection.box.bottomLeft
-          ).draw(this.canvasEl);
-        }
-      } else {
-        this.canvasEl
-          .getContext("2d")
-          .clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
-      }
-      this.timeout = setTimeout(() => this.fnRunFaceAgeAndGender());
-    },
-    // 执行检测识别类型
-    fnRun() {
-      if (this.detection === "landmark") {
-        this.fnRunFaceLandmark();
-        return;
-      }
-      if (this.detection === "expression") {
-        this.fnRunFaceExpression();
-        return;
-      }
-      if (this.detection === "age_gender") {
-        this.fnRunFaceAgeAndGender();
-        return;
-      }
-    },
-    // 视频暂停播放
-    fnPaused() {
-      if (this.videoEl.paused) {
-        this.videoEl.play();
-        setTimeout(() => this.fnRun(), 300);
-      } else {
-        this.videoEl.pause();
-      }
-    },
-    // 更换视频,清空绘制
-    fnChange(e) {
-      if (!e.target.files.length) return;
-      this.videoEl.pause();
-      setTimeout(() => {
-        this.canvasEl
-          .getContext("2d")
-          .clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
-        this.videoEl.src = URL.createObjectURL(e.target.files[0]);
-      }, 300);
-    },
-  },
-  beforeDestroy() {
-    this.videoEl.pause();
-    clearTimeout(this.timeout);
-  },
-};
-</script>
-
-<style scoped>
-.see {
-  position: relative;
-}
-.see img {
-  max-width: 400px;
-  max-height: 400px;
-}
-.see canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.option {
-  padding-bottom: 20px;
-}
-.option div {
-  padding: 10px;
-  border-bottom: 2px #42b983 solid;
-}
-.option div label {
-  margin-right: 20px;
-}
-</style>
+<style scoped></style>

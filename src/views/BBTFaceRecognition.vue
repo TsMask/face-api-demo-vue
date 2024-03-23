@@ -1,199 +1,235 @@
+<script setup>
+import * as faceapi from "face-api.js";
+import { onMounted, reactive, watch } from "vue";
+
+/**属性状态 */
+const state = reactive({
+  /**初始化模型加载 */
+  netsLoadModel: true,
+  /**算法模型 */
+  netsType: "ssdMobilenetv1",
+  /**模型参数 */
+  netsOptions: {
+    ssdMobilenetv1: undefined,
+    tinyFaceDetector: undefined,
+    mtcnn: undefined,
+  },
+  /**目标图片数据匹配对象 */
+  faceMatcher: {},
+  /**目标图片元素 */
+  targetImgEl: null,
+  /**目标画布图层元素 */
+  targetCanvasEl: null,
+  // 预设样本图，支持本地，网络，beas64
+  sampleArr: [
+    {
+      name: "曾小贤",
+      imgs: [
+        "/images/zxx/face/zxx01.png",
+        "/images/zxx/face/zxx02.png",
+        "/images/zxx/face/zxx03.png",
+        "/images/zxx/face/zxx04.png",
+      ],
+    },
+    {
+      name: "张伟",
+      imgs: [
+        "/images/zw/face/zw01.png",
+        "/images/zw/face/zw02.png",
+        "/images/zw/face/zw03.png",
+        "/images/zw/face/zw04.png",
+      ],
+    },
+  ],
+});
+
+/**初始化模型加载 */
+async function fnLoadModel() {
+  // 面部轮廓模型
+  await faceapi.loadFaceLandmarkModel("/models");
+  // 面部识别模型
+  await faceapi.loadFaceRecognitionModel("/models");
+
+  // 模型参数-ssdMobilenetv1
+  await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
+  state.netsOptions.ssdMobilenetv1 = new faceapi.SsdMobilenetv1Options({
+    minConfidence: 0.6, // 0.1 ~ 0.9
+  });
+  // 模型参数-tinyFaceDetector
+  await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+  state.netsOptions.tinyFaceDetector = new faceapi.TinyFaceDetectorOptions({
+    inputSize: 512, // 160 224 320 416 512 608
+    scoreThreshold: 0.5, // 0.1 ~ 0.9
+  });
+  // 模型参数-mtcnn 已弃用，将很快被删除
+  await faceapi.nets.mtcnn.loadFromUri("/models");
+  state.netsOptions.mtcnn = new faceapi.MtcnnOptions({
+    minFaceSize: 20, // 1 ~ 50
+    scaleFactor: 0.709, // 0.1 ~ 0.9
+  });
+
+  // 节点元素
+  state.targetImgEl = document.getElementById("page_draw-img-target");
+  state.targetCanvasEl = document.getElementById("page_draw-canvas-target");
+
+  // 关闭模型加载
+  state.netsLoadModel = false;
+}
+
+// 样本图片数据矩阵，生成人脸匹配对象
+async function fnFaceMatcherDesc() {
+  const labeledFaceDescriptors = await Promise.all(
+    state.sampleArr.map(async (item) => {
+      // 临时图片转码数据，将图片对象转数据矩阵对象
+      const descriptors = [];
+      for (const image of item.imgs) {
+        const imageEl = await faceapi.fetchImage(image);
+        descriptors.push(await faceapi.computeFaceDescriptor(imageEl));
+      }
+      // 返回图片用户和图片转码数组
+      return new faceapi.LabeledFaceDescriptors(item.name, descriptors);
+    })
+  );
+  // 人脸匹配矩阵数组对象转码结果
+  state.faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors);
+}
+
+/**根据模型参数识别绘制 */
+async function fnRedraw() {
+  const detect = await faceapi
+    .detectAllFaces(state.targetImgEl, state.netsOptions[state.netsType])
+    // 需引入面部轮廓模型
+    .withFaceLandmarks()
+    // 需引入面部识别模型
+    .withFaceDescriptors();
+  if (!detect.length) {
+    state.faceMatcher = null;
+    fnFaceMatcherDesc();
+    return;
+  }
+  // 识别图像绘制
+  const dims = faceapi.matchDimensions(state.targetCanvasEl, state.targetImgEl);
+  const resizedResults = faceapi.resizeResults(detect, dims);
+  resizedResults.forEach(({ detection, descriptor }) => {
+    // 最佳匹配 distance越小越匹配
+    const best = state.faceMatcher.findBestMatch(descriptor);
+    // 识别图绘制框
+    const label = best.toString();
+    // 绘制框
+    new faceapi.draw.DrawBox(detection.box, {
+      label,
+      boxColor: "#55b881",
+    }).draw(state.targetCanvasEl);
+  });
+}
+
+/**更换目标图片 */
+async function fnChangeTarget(e) {
+  if (!e.target || !e.target.files.length) return;
+  // 将文件显示为图像并识别
+  const img = await faceapi.bufferToImage(e.target.files[0]);
+  state.targetImgEl.src = img.src;
+  await fnRedraw();
+}
+
+/**新增样本图 */
+async function fnChangeSample(e) {
+  if (!e.target || !e.target.files.length) return;
+  // 将文件显示为图像并识别
+  let sampleItme = {
+    name: `${Date.now()}`,
+    imgs: [],
+  };
+  for (const file of e.target.files) {
+    const inputEl = await faceapi.bufferToImage(file);
+    sampleItme.imgs.push(inputEl.src);
+  }
+  state.sampleArr.push(sampleItme);
+
+  state.faceMatcher = null;
+  fnFaceMatcherDesc();
+}
+
+// 模型变更
+watch(
+  () => state.netsType,
+  () => {
+    fnRedraw();
+  }
+);
+
+onMounted(() => {
+  fnLoadModel()
+    .then(() => fnFaceMatcherDesc())
+    .then(() => fnRedraw());
+});
+</script>
+
 <template>
-  <div class="face_recognition_library">
-    <div class="option">
+  <div class="page">
+    <div class="page_option">
       <div>
-        <label>匹配图选择：</label>
+        <label>新增样本图多选择：</label>
         <input
           type="file"
           accept="image/png, image/jpeg"
-          @change="fnChange($event)"
+          multiple="multiple"
+          @change="fnChangeSample($event)"
         />
       </div>
       <div>
-        <label>选择算法模型</label>
-        <label>
-          ssdMobilenetv1
-          <input type="radio" v-model="nets" value="ssdMobilenetv1" />
-        </label>
-        <label>
-          tinyFaceDetector
-          <input type="radio" v-model="nets" value="tinyFaceDetector" />
-        </label>
-        <label>
-          mtcnn
-          <input type="radio" v-model="nets" value="mtcnn" />
-        </label>
+        <label>更换匹配图单选择：</label>
+        <input
+          type="file"
+          accept="image/png, image/jpeg"
+          @change="fnChangeTarget($event)"
+        />
+      </div>
+      <div>
+        <label>算法模型：</label>
+        <select v-model="state.netsType">
+          <option value="ssdMobilenetv1">SSD Mobilenet V1</option>
+          <option value="tinyFaceDetector">Tiny Face Detector</option>
+          <option value="mtcnn">MTCNN</option>
+        </select>
+      </div>
+      <div style="color: #f44336">
+        <label>注意：</label>
+        <span>请使用人脸提取得到的图像作为样本进行识别</span>
       </div>
     </div>
-    <h3>匹配图：</h3>
-    <div class="target">
-      <img id="targetImg" src="images/xxm/xxm03.jpg" />
-      <canvas id="targetCanvas" />
-    </div>
-    <h3>样本库：</h3>
-    <div v-for="(item, i) in sampleArr" :key="i">
-      <span style="color: #42b983;" v-text="item.name"></span>
-      <div class="pic">
-        <img v-for="img in item.img" :key="img" :src="img" :alt="item.name" />
+    <div class="page_load" v-show="state.netsLoadModel">Load Model...</div>
+    <div class="page_draw" v-show="!state.netsLoadModel">
+      <h3>匹配图：</h3>
+      <div class="page_draw-target">
+        <img id="page_draw-img-target" src="/images/cp/cp03.jpg" />
+        <canvas id="page_draw-canvas-target"></canvas>
+      </div>
+      <h3>样本库：</h3>
+      <div v-for="(item, i) in state.sampleArr" :key="i">
+        <span style="color: #55b881" v-text="item.name"></span>
+        <div class="draw">
+          <img
+            v-for="img in item.imgs"
+            :key="img"
+            :src="img"
+            :alt="item.name"
+          />
+        </div>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import * as faceapi from "face-api.js";
-export default {
-  name: "BBTFaceRecognition",
-  data() {
-    return {
-      nets: "ssdMobilenetv1",
-      options: null,
-      // 预设样本图，支持本地，网络，beas64
-      sampleArr: [
-        {
-          name: "欣小萌",
-          img: [
-            "images/xxm/face/xxm01.png",
-            "images/xxm/face/xxm02.png",
-            "images/xxm/face/xxm03.png",
-            "images/xxm/face/xxm04.png",
-          ],
-        },
-        {
-          name: "旭旭宝宝",
-          img: [
-            "images/xxbb/face/xxbb01.png",
-            "images/xxbb/face/xxbb02.png",
-            "images/xxbb/face/xxbb03.png",
-            "images/xxbb/face/xxbb04.png",
-          ],
-        },
-      ],
-      // 样本人脸匹配矩阵数组对象转码结果
-      faceMatcher: null,
-      imgEl: null,
-      canvasEl: null,
-    };
-  },
-  watch: {
-    nets(val) {
-      this.nets = val;
-      this.fnInit().then(() => this.fnRun());
-    },
-  },
-  mounted() {
-    this.$nextTick(() => {
-      this.fnInit().then(() => this.fnRun());
-    });
-  },
-  methods: {
-    // 初始化模型加载
-    async fnInit() {
-      await faceapi.nets[this.nets].loadFromUri("/models");
-      await faceapi.loadFaceLandmarkModel("/models");
-      await faceapi.loadFaceRecognitionModel("/models");
-      // 根据模型参数识别调整结果
-      switch (this.nets) {
-        case "ssdMobilenetv1":
-          this.options = new faceapi.SsdMobilenetv1Options({
-            minConfidence: 0.5, // 0.1 ~ 0.9
-          });
-          break;
-        case "tinyFaceDetector":
-          this.options = new faceapi.TinyFaceDetectorOptions({
-            inputSize: 512, // 160 224 320 416 512 608
-            scoreThreshold: 0.5, // 0.1 ~ 0.9
-          });
-          break;
-        case "mtcnn":
-          this.options = new faceapi.MtcnnOptions({
-            minFaceSize: 20, // 0.1 ~ 0.9
-            scaleFactor: 0.709, // 0.1 ~ 0.9
-          });
-          break;
-      }
-      // 节点对象
-      this.imgEl = document.getElementById("targetImg");
-      this.canvasEl = document.getElementById("targetCanvas");
-      await this.fnfaceMatcher();
-    },
-    // 生成人脸匹配矩阵数组对象，样本图片同步转码
-    async fnfaceMatcher() {
-      const labeledFaceDescriptors = await Promise.all(
-        this.sampleArr.map(async (item) => {
-          // 临时图片转码数据，将图片对象转数据矩阵对象
-          let descriptors = [];
-          for (let image of item.img) {
-            const imageEl = await faceapi.fetchImage(image);
-            descriptors.push(await faceapi.computeFaceDescriptor(imageEl));
-          }
-          // 返回图片用户和图片转码数组
-          return new faceapi.LabeledFaceDescriptors(item.name, descriptors);
-        })
-      );
-      // 人脸匹配矩阵数组对象转码结果
-      this.faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors);
-    },
-    // 执行识别匹配图片，数值误差越小越精确
-    async fnRun() {
-      const results = await faceapi
-        .detectAllFaces(this.imgEl, this.options)
-        .withFaceLandmarks()
-        .withFaceDescriptors();
-      faceapi.matchDimensions(this.canvasEl, this.imgEl);
-      const resizedResults = faceapi.resizeResults(results, this.imgEl);
-      resizedResults.forEach(({ detection, descriptor }) => {
-        const label = this.faceMatcher.findBestMatch(descriptor).toString();
-        new faceapi.draw.DrawBox(detection.box, { label }).draw(this.canvasEl);
-      });
-    },
-    // 更换匹配图
-    fnChange(e) {
-      if (!e.target.files.length) return;
-      // 将文件显示为图像并识别
-      faceapi.bufferToImage(e.target.files[0]).then((img) => {
-        this.imgEl.src = img.src;
-        this.canvasEl
-          .getContext("2d")
-          .clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
-        this.fnRun();
-      });
-    },
-  },
-};
-</script>
-
 <style scoped>
-.target {
-  position: relative;
-}
-.target img {
-  max-width: 600px;
-  max-height: 400px;
-}
-.target canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.pic {
+.draw {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
 }
-.pic img {
+.draw img {
   max-width: 90px;
   max-height: 90px;
   margin: 10px;
-}
-.option {
-  padding-bottom: 20px;
-}
-.option div {
-  padding: 10px;
-  border-bottom: 2px #42b983 solid;
-}
-.option div label {
-  margin-right: 20px;
 }
 </style>

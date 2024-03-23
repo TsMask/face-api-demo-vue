@@ -1,125 +1,116 @@
+<script setup>
+import { onMounted, onUnmounted, reactive, watch } from "vue";
+
+/**属性状态 */
+const state = reactive({
+  /**视频媒体参数配置 */
+  constraints: {
+    audio: false,
+    video: {
+      /**ideal（应用最理想的） */
+      width: {
+        min: 320,
+        ideal: 720,
+        max: 1280,
+      },
+      height: {
+        min: 200,
+        ideal: 480,
+        max: 720,
+      },
+      /**frameRate 受限带宽传输时，低帧率可能更适宜 */
+      frameRate: {
+        min: 7,
+        ideal: 15,
+        max: 30,
+      },
+      /**facingMode 摄像头前后切换 */
+      facingMode: "environment",
+    },
+  },
+  /**视频流 */
+  stream: null,
+  /**视频元素 */
+  videoEl: null,
+});
+
+/**启动摄像头视频媒体 */
+async function fnOpen() {
+  if (state.stream !== null) return;
+  try {
+    state.stream = {}; // 置为空对象，避免重复点击
+    const stream = await navigator.mediaDevices.getUserMedia(state.constraints);
+    state.stream = stream;
+    state.videoEl.srcObject = stream;
+    state.videoEl.play();
+  } catch (error) {
+    state.stream = null; // 置为空，可点击
+    console.error(error);
+    alert("视频媒体流获取错误: " + error);
+  }
+}
+
+/**结束摄像头视频媒体 */
+function fnClose() {
+  if (state.stream === null) return;
+  state.videoEl.pause();
+  state.videoEl.srcObject = null;
+  state.stream.getTracks().forEach((track) => track.stop());
+  state.stream = null;
+}
+
+// 摄像头前后切换 启用时，关闭后重开
+watch(
+  () => state.constraints.video.facingMode,
+  () => {
+    if (state.stream !== null) {
+      fnClose();
+      fnOpen();
+    } else {
+      fnClose();
+    }
+  }
+);
+
+onMounted(() => {
+  // 节点元素
+  state.videoEl = document.getElementById("page_draw-video");
+});
+
+onUnmounted(() => {
+  fnClose();
+});
+</script>
+
 <template>
-  <div class="webrtc_media_stream">
-    <div>
-      <button @click="fnOpen">启动摄像头视频媒体</button>
-      <button @click="fnClose">结束摄像头视频媒体</button>
+  <div class="page">
+    <div class="page_option">
       <div>
-        <span style="margin-right: 20px;"
-          >前置后置切换（重新启动摄像头）：</span
-        >
-        <label>
-          前置
-          <input
-            type="radio"
-            v-model="constraints.video.facingMode"
-            value="user"
-          />
-        </label>
-        <label>
-          后置
-          <input
-            type="radio"
-            v-model="constraints.video.facingMode"
-            value="environment"
-          />
-        </label>
+        <label>摄像头视频媒体：</label>
+        <button @click="fnOpen()" :disabled="state.stream !== null">
+          启动
+        </button>
+        &nbsp;
+        <button @click="fnClose()">结束</button>
+      </div>
+      <div>
+        <label>前置or后置切换：</label>
+        <select v-model="state.constraints.video.facingMode">
+          <option value="user">前置</option>
+          <option value="environment">后置</option>
+        </select>
       </div>
     </div>
-    <hr />
-    <video
-      id="myVideo"
-      poster="https://dummyimage.com/1280x720"
-      muted
-      loop
-      playsinline
-    ></video>
+    <div class="page_draw">
+      <video
+        id="page_draw-video"
+        poster="/images/720x480.png"
+        muted
+        loop
+        playsinline
+      ></video>
+    </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: "WebRTCMediaStream",
-  data() {
-    return {
-      videoEl: null,
-      device: null,
-      // 视频媒体参数配置
-      constraints: {
-        audio: false,
-        video: {
-          // ideal（应用最理想的）
-          width: {
-            min: 320,
-            ideal: 1280,
-            max: 1920,
-          },
-          height: {
-            min: 240,
-            ideal: 720,
-            max: 1080,
-          },
-          // frameRate受限带宽传输时，低帧率可能更适宜
-          frameRate: {
-            min: 15,
-            ideal: 30,
-            max: 60,
-          },
-          facingMode: "environment",
-        },
-      },
-    };
-  },
-  mounted() {
-    this.videoEl = document.getElementById("myVideo");
-  },
-  methods: {
-    // 启动摄像头视频媒体
-    fnOpen() {
-      if (typeof window.stream === "object") return;
-      clearTimeout(this.device);
-      this.device = setTimeout(() => {
-        clearTimeout(this.device);
-        navigator.mediaDevices
-          .getUserMedia(this.constraints)
-          .then(this.fnSuccess)
-          .catch(this.fnError);
-      }, 500);
-    },
-    // 成功启动视频媒体流
-    fnSuccess(stream) {
-      window.stream = stream; // 使流对浏览器控制台可用
-      this.videoEl.srcObject = stream;
-      this.videoEl.play();
-    },
-    // 失败启动视频媒体流
-    fnError(error) {
-      console.log(error);
-      alert("视频媒体流获取错误" + error);
-    },
-    // 结束摄像头视频媒体
-    fnClose() {
-      this.videoEl.pause();
-      if (typeof window.stream === "object") {
-        this.videoEl.srcObject = null;
-        window.stream.getTracks().forEach((track) => track.stop());
-        window.stream = "";
-        this.videoEl.srcObject = null;
-      }
-    },
-  },
-  beforeDestroy() {
-    this.fnClose();
-  },
-};
-</script>
-
-<style scoped>
-button {
-  height: 30px;
-  border: 2px #42b983 solid;
-  border-radius: 4px;
-  background: #42b983;
-  color: white;
-  margin: 10px;
-}
-</style>
+<style scoped></style>

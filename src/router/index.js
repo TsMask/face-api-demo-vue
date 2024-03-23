@@ -1,21 +1,29 @@
-import Vue from "vue";
-import Router from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 import routes from "./routes";
 
-Vue.use(Router);
-
-const router = new Router({
-  mode: "history",
-  base: process.env.BASE_URL,
+const router = new createRouter({
+  history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition;
+    } else {
+      return { top: 0 };
+    }
+  },
 });
 
+/**全局路由-前置守卫 */
 router.beforeEach((to, from, next) => {
   next();
 });
 
-router.afterEach(() => {
-  window.scrollTo(0, 0);
+/**全局路由-后置守卫 */
+router.afterEach((to, from, failure) => {
+  // 设置标题
+  if (to.meta?.title) {
+    document.title = to.meta.title;
+  }
 });
 
 export default router;
