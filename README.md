@@ -2,7 +2,7 @@
 
 使用 `Vue` 框架搭建演示，`H5`、`Web`、`NodeJS` 实现人脸检测识别，基于 `TensorFlowJS` 实现的 `face-api.js` 人脸识别库。
 
-模型文件放在 `public\models` 目录下，部署时请确保网络路径能访问到模型文件。
+模型文件放在 `public/models` 目录下，部署时请确保网络路径能访问到模型文件。
 
 npm 主要安装以下：
 
@@ -77,20 +77,20 @@ const canvas = faceapi.createCanvasFromMedia(HTMLImageElement | HTMLVideoElement
 
 内含功能：
 
-1. [脸标志检测](src\views\FaceLandmarkDetection.vue)
-2. [人脸表情识别](src\views\FaceExpressionRecognition.vue)
-3. [年龄和性别识别](src\views\AgeAndGenderRecognition.vue)
-4. [人脸提取](src\views\FaceExtraction.vue)
-5. [人脸识别](src\views\FaceRecognition.vue)
-6. [人脸识别多图处理](src\views\FaceRecognitionMore.vue)
-7. [BBT 人脸识别](src\views\BBTFaceRecognition.vue)
-8. [BBT 图片相似度](src\views\BBTFaceSimilarity.vue)
-9. [BBT 图片相似度多查找](src\views\BBTFaceSimilarityMore.vue)
-10. [Video 人脸跟踪](src\views\VideoFaceDetector.vue)
-11. [Video 人脸识别](src\views\VideoFaceRecognition.vue)
-12. [WebRTC 人脸跟踪](src\views\WebRTCFaceDetector.vue)
-13. [WebRTC 人脸识别](src\views\WebRTCFaceRecognition.vue)
-14. [WebRTC 媒体流基础](src\views\WebRTCMediaStream.vue)
+1. [脸标志检测](src/views/FaceLandmarkDetection.vue)
+2. [人脸表情识别](src/views/FaceExpressionRecognition.vue)
+3. [年龄和性别识别](src/views/AgeAndGenderRecognition.vue)
+4. [人脸提取](src/views/FaceExtraction.vue)
+5. [人脸识别](src/views/FaceRecognition.vue)
+6. [人脸识别多图处理](src/views/FaceRecognitionMore.vue)
+7. [BBT 人脸识别](src/views/BBTFaceRecognition.vue)
+8. [BBT 图片相似度](src/views/BBTFaceSimilarity.vue)
+9. [BBT 图片相似度多查找](src/views/BBTFaceSimilarityMore.vue)
+10. [Video 人脸跟踪](src/views/VideoFaceDetector.vue)
+11. [Video 人脸识别](src/views/VideoFaceRecognition.vue)
+12. [WebRTC 人脸跟踪](src/views/WebRTCFaceDetector.vue)
+13. [WebRTC 人脸识别](src/views/WebRTCFaceRecognition.vue)
+14. [WebRTC 媒体流基础](src/views/WebRTCMediaStream.vue)
 
 编译执行环境：
 
