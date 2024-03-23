@@ -56,25 +56,25 @@ const state = reactive({
 /**初始化模型加载 */
 async function fnLoadModel() {
   // 面部轮廓模型
-  await faceapi.loadFaceLandmarkModel("/models");
+  await faceapi.loadFaceLandmarkModel(`${import.meta.env.BASE_URL}/models`);
   // 面部表情模型
-  await faceapi.loadFaceExpressionModel("/models");
+  await faceapi.loadFaceExpressionModel(`${import.meta.env.BASE_URL}/models`);
   // 年龄性别模型
-  await faceapi.loadAgeGenderModel("/models");
+  await faceapi.loadAgeGenderModel(`${import.meta.env.BASE_URL}/models`);
 
   // 模型参数-ssdMobilenetv1
-  await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
+  await faceapi.nets.ssdMobilenetv1.loadFromUri(`${import.meta.env.BASE_URL}/models`);
   state.netsOptions.ssdMobilenetv1 = new faceapi.SsdMobilenetv1Options({
     minConfidence: 0.5, // 0.1 ~ 0.9
   });
   // 模型参数-tinyFaceDetector
-  await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+  await faceapi.nets.tinyFaceDetector.loadFromUri(`${import.meta.env.BASE_URL}/models`);
   state.netsOptions.tinyFaceDetector = new faceapi.TinyFaceDetectorOptions({
     inputSize: 224, // 160 224 320 416 512 608
     scoreThreshold: 0.5, // 0.1 ~ 0.9
   });
   // 模型参数-mtcnn 已弃用，将很快被删除
-  await faceapi.nets.mtcnn.loadFromUri("/models");
+  await faceapi.nets.mtcnn.loadFromUri(`${import.meta.env.BASE_URL}/models`);
   state.netsOptions.mtcnn = new faceapi.MtcnnOptions({
     minFaceSize: 20, // 1 ~ 50
     scaleFactor: 0.56, // 0.1 ~ 0.9

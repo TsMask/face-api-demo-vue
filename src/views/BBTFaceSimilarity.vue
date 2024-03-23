@@ -21,7 +21,7 @@ const state = reactive({
 /**初始化模型加载 */
 async function fnLoadModel() {
   // 面部识别模型
-  await faceapi.loadFaceRecognitionModel("/models");
+  await faceapi.loadFaceRecognitionModel(`${import.meta.env.BASE_URL}/models`);
 
   // 节点元素
   state.targetImgEl = document.getElementById("page_draw-img-target");

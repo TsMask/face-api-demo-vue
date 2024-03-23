@@ -23,21 +23,21 @@ const state = reactive({
   // 预设样本图，支持本地，网络，beas64
   sampleArr: [
     {
-      name: "曾小贤",
+      name: "张伟",
       imgs: [
-        "/images/zxx/face/zxx01.png",
-        "/images/zxx/face/zxx02.png",
-        "/images/zxx/face/zxx03.png",
-        "/images/zxx/face/zxx04.png",
+        `${import.meta.env.BASE_URL}/images/zw/face/zw01.png`,
+        `${import.meta.env.BASE_URL}/images/zw/face/zw02.png`,
+        `${import.meta.env.BASE_URL}/images/zw/face/zw03.png`,
+        `${import.meta.env.BASE_URL}/images/zw/face/zw04.png`,
       ],
     },
     {
-      name: "张伟",
+      name: "曾小贤",
       imgs: [
-        "/images/zw/face/zw01.png",
-        "/images/zw/face/zw02.png",
-        "/images/zw/face/zw03.png",
-        "/images/zw/face/zw04.png",
+        `${import.meta.env.BASE_URL}/images/zxx/face/zxx01.png`,
+        `${import.meta.env.BASE_URL}/images/zxx/face/zxx02.png`,
+        `${import.meta.env.BASE_URL}/images/zxx/face/zxx03.png`,
+        `${import.meta.env.BASE_URL}/images/zxx/face/zxx04.png`,
       ],
     },
   ],
@@ -46,23 +46,27 @@ const state = reactive({
 /**初始化模型加载 */
 async function fnLoadModel() {
   // 面部轮廓模型
-  await faceapi.loadFaceLandmarkModel("/models");
+  await faceapi.loadFaceLandmarkModel(`${import.meta.env.BASE_URL}/models`);
   // 面部识别模型
-  await faceapi.loadFaceRecognitionModel("/models");
+  await faceapi.loadFaceRecognitionModel(`${import.meta.env.BASE_URL}/models`);
 
   // 模型参数-ssdMobilenetv1
-  await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
+  await faceapi.nets.ssdMobilenetv1.loadFromUri(
+    `${import.meta.env.BASE_URL}/models`
+  );
   state.netsOptions.ssdMobilenetv1 = new faceapi.SsdMobilenetv1Options({
     minConfidence: 0.6, // 0.1 ~ 0.9
   });
   // 模型参数-tinyFaceDetector
-  await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+  await faceapi.nets.tinyFaceDetector.loadFromUri(
+    `${import.meta.env.BASE_URL}/models`
+  );
   state.netsOptions.tinyFaceDetector = new faceapi.TinyFaceDetectorOptions({
     inputSize: 512, // 160 224 320 416 512 608
     scoreThreshold: 0.5, // 0.1 ~ 0.9
   });
   // 模型参数-mtcnn 已弃用，将很快被删除
-  await faceapi.nets.mtcnn.loadFromUri("/models");
+  await faceapi.nets.mtcnn.loadFromUri(`${import.meta.env.BASE_URL}/models`);
   state.netsOptions.mtcnn = new faceapi.MtcnnOptions({
     minFaceSize: 20, // 1 ~ 50
     scaleFactor: 0.709, // 0.1 ~ 0.9

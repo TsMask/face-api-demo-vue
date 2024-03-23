@@ -1,8 +1,14 @@
+<script setup>
+import { useRouter } from "vue-router";
+const router = useRouter(); // 返回路由器实例
+const routes = router.getRoutes();
+</script>
+
 <template>
   <div class="layout">
     <div class="layout_nav">
       <ul>
-        <li v-for="(item, index) in $router.options.routes" :key="index">
+        <li v-for="(item, index) in routes" :key="index">
           <router-link :to="item.path" v-text="item.meta.title"></router-link>
         </li>
       </ul>

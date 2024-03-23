@@ -5,7 +5,7 @@ import vue from "@vitejs/plugin-vue";
 // https://vitejs.dev/config/
 export default defineConfig({
   // 访问基础路径
-  base: "/",
+  base: "/face-api-demo-vue",
   // 本地开发服务配置
   server: {
     port: 5173, // 端口
